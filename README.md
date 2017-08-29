@@ -1,7 +1,7 @@
 # The Blacklist
 Concept is simple, it's a giant ' sourceban ' auto-updated with a very large configuration who ban malicious players from your Gmod server.
 
-Features, located in lua/config\_blacklist_gbox.lua :
+Features, located in lua/autorun/config\_blacklist_gbox.lua :
 
 – Auto-update with a single command in console : 
 blacklist_upgrade
