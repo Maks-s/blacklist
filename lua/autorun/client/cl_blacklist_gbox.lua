@@ -110,9 +110,9 @@ local function blacklistUpgradeMe() -- delete everything in data/
 end
 
 net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 networkString nah ?
-	local mode = net.ReadInt(32)
+	local mode = net.ReadUInt(2)
 	if mode == 0 then
-		blacklistUrlCli(net.ReadInt(32))
+		blacklistUrlCli(net.ReadUInt(16))
 	elseif mode == 1 then
 		blacklistUpgradeMe()
 	elseif mode == 2 then

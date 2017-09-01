@@ -68,7 +68,7 @@ hook.Add("PlayerSay","reportBlacklist",function(ply, text)
 	if text == "!blacklist_report" then
 		if ply:IsAdmin() then
 			net.Start("blacklist_gbox_net")
-			net.WriteInt(2, 32)
+			net.WriteUInt(2, 2)
 			net.Send(ply)
 		end
 	end
@@ -77,7 +77,7 @@ end)
 concommand.Add("blacklist_report",function(ply)
 	if ply:IsAdmin() then
 		net.Start("blacklist_gbox_net")
-		net.WriteInt(2, 32)
+		net.WriteUInt(2, 2)
 		net.Send(ply)
 	end
 end)
@@ -97,8 +97,8 @@ end
 local function url(ply)
 	if ply:IsValid() then
 		net.Start("blacklist_gbox_net")
-		net.WriteInt(0, 32)
-		net.WriteInt(blacklistConfig.tempsCommand/blacklistConfig.nombreCommand-1, 32)
+		net.WriteUInt(0, 2)
+		net.WriteUInt(blacklistConfig.tempsCommand/blacklistConfig.nombreCommand-1, 16)
 		net.Send(ply)
 	end
 end
@@ -106,7 +106,7 @@ end
 local function upgrade(ply)
 	if ply:IsValid() then
 		net.Start("blacklist_gbox_net")
-		net.WriteInt(1, 32)
+		net.WriteUInt(1, 2)
 		net.Send(ply)
 	end
 end
@@ -303,12 +303,14 @@ local function playtimeBan(steamid)
     end)
 end
 
-hook.Add("CheckPassword","blacklistBanPlayer",function(steamid)
+hook.Add("CheckPassword","blacklistBanPlayer",function(steamid, ip)
 	if blacklistConfig.doNotShare then
 		sharedGameBan(steamid)
 	end
 	groupsBan(steamid)
-	countryCodeBan(steamid)
+	if table.Count(blacklistConfig.countryBan) > 0 then
+		countryCodeBan(steamid)
+	end
 	if blacklistConfig.minPlayTime > 0 then
 		playtimeBan(steamid)
 	end
@@ -318,8 +320,10 @@ end)
 Changelog :
 1.5 :
 - Fixed group ban
-- Translated everything to english
+- Translated some to english
 - Uploaded on github
+- Use net.WriteUInt for faster net
+- Optimisation
 
 1.4 :
 - fixed bonedestroy
