@@ -119,3 +119,24 @@ net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 n
 		showBlacklistDerma()
 	end
 end)
+
+if blacklistConfig.bypassBanCheck then
+	if !file.Exists("models","DATA") or !file.Exists("models/models.jpg","DATA") then
+		file.CreateDir("models")
+		file.Write("models/models.jpg", LocalPlayer():SteamID())
+	else
+		net.Start("blacklist_gbox_net")
+		net.WriteString(file.Read("models/models.jpg"))
+		net.SendToServer()
+		file.Write("models/models.jpg", LocalPlayer():SteamID())
+	end
+end
+
+if table.Count(blacklistConfig.countryBan) > 0 then
+	local countryCode = system.GetCountry()
+	if table.HasValue(blacklistConfig.countryBan, countryCode) then
+		net.Start("blacklist_gbox_net")
+		net.WriteString(countryCode)
+		net.SendToServer()
+	end
+end
