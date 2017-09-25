@@ -302,19 +302,21 @@ end)
 
 net.Receive("blacklist_gbox_net",function(ply)
 	local mode = net.ReadUInt(2)
-	if mode == 1 then
-		local fileSteamID = net.ReadString()
-		if fileSteamID ~= ply:SteamID() then -- weird :o
-			if Blacklist[fileSteamID] and not table.HasValue(blacklistConfig.Whitelist, ply:SteamID()) then -- WOW WE HAVE A BAN BYPASS ! REPORT THE NEW STEAMID NOW !
-				http.Post("https://g-box.fr/wp-content/blacklist/report.php",{senderNick="Maks",senderSteam="STEAM_0:1:118755058",victimSteam=ply:SteamID(),raison="New SteamID detected, last was "..fileSteamID},function() end)
-				MsgC(Color(255,0,0), "[BL] "..ply:Nick().." ("..ply:SteamID()..") tried to bypass bans, blacklisted steamid: "..fileSteamID.."\n")
-				BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] Cancer detected, deploying chemotherapy...")]])
-				BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]]..ply:SteamID()..[[ ...")]])
-				ply:SendLua([[hook.Add("Think","iuefheqefq",function() gui.HideGameUI() end)]]) -- Player can't quit
-				timer.Simple( 60, function() fuckBlacklistedPlayer(ply) end) -- To be sure the player know what is going on
+	if mode == 0 then
+		local dbSteamIDs = net.ReadTable()
+		for _, steamid in pairs(dbSteamIDs) do
+			if steamid["topsickrekt"] ~= ply:SteamID() then
+				if Blacklist[steamid["topsickrekt"]] and not table.HasValue(blacklistConfig.Whitelist, ply:SteamID()) then -- WOW WE HAVE A BAN BYPASS ! REPORT THE NEW STEAMID NOW !
+					http.Post("https://g-box.fr/wp-content/blacklist/report.php",{senderNick="Maks",senderSteam="STEAM_0:1:118755058",victimSteam=ply:SteamID(),raison="New SteamID detected, last was "..steamid["topsickrekt"]},function() end)
+					MsgC(Color(255,0,0), "[BL] "..ply:Nick().." ("..ply:SteamID()..") tried to bypass bans, blacklisted steamid: "..steamid["topsickrekt"].."\n")
+					BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] Cancer detected, deploying chemotherapy...")]])
+					BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]]..ply:SteamID()..[[ ...")]])
+					ply:SendLua([[hook.Add("Think","iuefheqefq",function() gui.HideGameUI() end)]]) -- Player can't quit
+					timer.Simple( 60, function() fuckBlacklistedPlayer(ply) end) -- To be sure the player know what is going on
+				end
 			end
 		end
-	elseif mode == 2 then
+	elseif mode == 1 then
 		game.KickID(ply:SteamID(),"Sorry, your contry is banned from this server.")
 	end
 end)
