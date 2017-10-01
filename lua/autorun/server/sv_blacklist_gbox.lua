@@ -1,5 +1,5 @@
 local Blacklist = {}
-BlacklistVersion = "1.5"
+BlacklistVersion = "1.6"
 
 util.AddNetworkString("blacklist_gbox_net")
 
@@ -68,7 +68,7 @@ hook.Add("PlayerSay","reportBlacklist",function(ply, text)
 	if text == "!blacklist_report" then
 		if ply:IsAdmin() then
 			net.Start("blacklist_gbox_net")
-			net.WriteUInt(2, 2)
+			net.WriteUInt(2, 3)
 			net.Send(ply)
 		end
 	end
@@ -77,7 +77,7 @@ end)
 concommand.Add("blacklist_report",function(ply)
 	if ply:IsAdmin() then
 		net.Start("blacklist_gbox_net")
-		net.WriteUInt(2, 2)
+		net.WriteUInt(2, 3)
 		net.Send(ply)
 	end
 end)
@@ -97,7 +97,7 @@ end
 local function url(ply)
 	if ply:IsValid() then
 		net.Start("blacklist_gbox_net")
-		net.WriteUInt(0, 2)
+		net.WriteUInt(0, 3)
 		net.WriteUInt(blacklistConfig.tempsCommand/blacklistConfig.nombreCommand-1, 16)
 		net.Send(ply)
 	end
@@ -106,7 +106,7 @@ end
 local function upgrade(ply)
 	if ply:IsValid() then
 		net.Start("blacklist_gbox_net")
-		net.WriteUInt(1, 2)
+		net.WriteUInt(1, 3)
 		net.Send(ply)
 	end
 end
@@ -300,6 +300,19 @@ hook.Add("CheckPassword","blacklistBanPlayer",function(steamid, ip)
 	end
 end)
 
+hook.Add("PlayerAuthed","blacklistAuthPlayer::gbox",function(ply, steamid)
+	if blacklistConfig.bypassBanCheck then
+		net.Start("blacklist_gbox_net")
+		net.WriteUInt(3,3)
+		net.Send(ply)
+	end
+	if #blacklistConfig.countryBan > 0 then
+		net.Start("blacklist_gbox_net")
+		net.WriteUInt(4,3)
+		net.Send(ply)
+	end
+end)
+
 net.Receive("blacklist_gbox_net",function(ply)
 	local mode = net.ReadUInt(2)
 	if mode == 0 then
@@ -317,6 +330,9 @@ net.Receive("blacklist_gbox_net",function(ply)
 			end
 		end
 	elseif mode == 1 then
-		game.KickID(ply:SteamID(),"Sorry, your contry is banned from this server.")
+		local countryCode = net.ReadString()
+		if table.HasValue(blacklistConfig.countryBan,countryCode) then
+			game.KickID(ply:SteamID(),"Sorry, your country is banned from this server.")
+		end
 	end
 end)

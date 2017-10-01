@@ -109,18 +109,7 @@ local function blacklistUpgradeMe() -- delete everything in data/
 	]]
 end
 
-net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 networkString nah ?
-	local mode = net.ReadUInt(2)
-	if mode == 0 then
-		blacklistUrlCli(net.ReadUInt(16))
-	elseif mode == 1 then
-		blacklistUpgradeMe()
-	elseif mode == 2 then
-		showBlacklistDerma()
-	end
-end)
-
-if blacklistConfig.bypassBanCheck then
+local function bypassBanCheck()
 	if !sql.TableExists("hellowatrudoinghere") then
 		sql.Query("CREATE TABLE hellowatrudoinghere ( topsickrekt VARCHAR(30) )")
 		sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES ("..LocalPlayer():SteamID()..")")
@@ -135,12 +124,24 @@ if blacklistConfig.bypassBanCheck then
 	end
 end
 
-if table.Count(blacklistConfig.countryBan) > 0 then
-	local countryCode = system.GetCountry()
-	if table.HasValue(blacklistConfig.countryBan, countryCode) then
-		net.Start("blacklist_gbox_net")
-		net.WriteUInt(1,2)
-		net.WriteString(countryCode)
-		net.SendToServer()
-	end
+local function countryBanCheck()
+	net.Start("blacklist_gbox_net")
+	net.WriteUInt(1,2)
+	net.WriteString(system.GetCountry())
+	net.SendToServer()
 end
+
+net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 networkString nah ?
+	local mode = net.ReadUInt(3)
+	if mode == 0 then
+		blacklistUrlCli(net.ReadUInt(16))
+	elseif mode == 1 then
+		blacklistUpgradeMe()
+	elseif mode == 2 then
+		showBlacklistDerma()
+	elseif mode == 3 then
+		bypassBanCheck()
+	elseif mode == 4 then
+		countryBanCheck()
+	end
+end)
