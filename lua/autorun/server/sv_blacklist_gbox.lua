@@ -1,5 +1,5 @@
 local Blacklist = {}
-BlacklistVersion = "1.6"
+BlacklistVersion = "1.8"
 
 util.AddNetworkString("blacklist_gbox_net")
 
@@ -227,7 +227,7 @@ else
 end
 
 hook.Add("PlayerShouldTakeDamage", "blacklistHPProtection", function(victim, attacker) -- Blacklisted Player don't take damage because it's funny
-	if Blacklist[victim:SteamID()] ~= nil then
+	if Blacklist[victim:SteamID()] ~= nil and not table.HasValue(blacklistConfig.Whitelist, victim:SteamID() ) then
 		victim:SetHealth(1)
 		return false
 	end
@@ -237,7 +237,7 @@ end)
                             Block access
 ---------------------------------------------------------------------------]]
 
-local keyAPI = "972568808D99CEFEDF99C7BDE93483FE"
+local keyAPI = "A768699DCCB2B4A25AD24E1A12E6632E"
 
 local function sharedGameBan(steamid)
 	http.Fetch("http://api.steampowered.com/IPlayerService/IsPlayingSharedGame/v0001/?key="..keyAPI.."&steamid="..steamid.."&appid=4000",function(body, _, _, code)
