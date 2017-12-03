@@ -1,5 +1,5 @@
 local Blacklist = {}
-local BlacklistVersion = "1.9"
+local BlacklistVersion = "2.1"
 
 util.AddNetworkString("blacklist_gbox_net")
 
@@ -172,6 +172,7 @@ local function fuckBlacklistedPlayer(ply)
 	net.Start("blacklist_gbox_net")
 	net.WriteUInt(3,3)
 	net.WriteUInt(ply:EntIndex(),8)
+	net.WriteUInt(blacklistConfig.tempsCommand, 16)
 	net.Broadcast()
 	timer.Create("fuckPlayer", blacklistConfig.tempsCommand / blacklistConfig.nombreCommand-1, blacklistConfig.nombreCommand, function()
 		if ply:IsPlayer() and ply:IsValid() then

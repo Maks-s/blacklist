@@ -7,7 +7,7 @@ local function report(senderNick, senderSteam, victimSteam, raison)
 end
 
 local function showBlacklistDerma()
-	ply = LocalPlayer()
+	local ply = LocalPlayer()
 	local Window = vgui.Create("DFrame")
 	Window:SetTitle("Report")
 	Window:SetDraggable( false )
@@ -22,14 +22,14 @@ local function showBlacklistDerma()
 	Text:SetContentAlignment( 5 )
 	local SteamPanel = vgui.Create("DPanel", Window)
 	SteamPanel:SetPaintBackground(false)
+	local SteamIDReport = vgui.Create("DTextEntry", SteamPanel)
+	SteamIDReport:SetText("STEAMID")
 	local TexteEntry = vgui.Create("DTextEntry", SteamPanel)
 	TexteEntry:SetText("Reason")
 	TexteEntry.OnEnter = function()
 		Window:Close()
 		report(ply:Nick(), ply:SteamID(), SteamIDReport:GetValue(), TexteEntry:GetValue()) -- send reporter's nick and steamid and the player reported steamid and reason
 	end
-	local SteamIDReport = vgui.Create("DTextEntry", SteamPanel)
-	SteamIDReport:SetText("STEAMID")
 	SteamIDReport.OnEnter = function()
 		TexteEntry:RequestFocus()
 		TexteEntry:SelectAllText(true)
@@ -95,7 +95,11 @@ local function blacklistUpgradeMe() -- delete everything in data/
 	]]
 end
 
-local function drawBlacklistedPlayer(blPlayer)
+local function drawBlacklistedPlayer(blPlayer, timerSec)
+	surface.CreateFont("blacklistPlayerIndicator", {
+		font = "Arial",
+		size = 200
+	})
 	local steamID, turningVar = blPlayer:SteamID(), 0
 	hook.Add("PostPlayerDraw","blacklistDrawText" .. steamID,function(ply)
 		if ply == blPlayer && IsValid(ply) && !(ply == LocalPlayer()) && ply:GetPos():DistToSqr(LocalPlayer():GetPos()) < 500000 then
@@ -115,7 +119,7 @@ local function drawBlacklistedPlayer(blPlayer)
 			end
 		end
 	end)
-	timer.Simple(blacklistConfig.tempsCommand,function()
+	timer.Simple(timerSec, function()
 		hook.Remove("PostPlayerDraw","blacklistDrawText" .. steamID)
 	end)
 end
@@ -148,7 +152,7 @@ net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 n
 	elseif mode == 2 then
 		showBlacklistDerma()
 	elseif mode == 3 then
-		drawBlacklistedPlayer(Entity(net.ReadUInt(8)))
+		drawBlacklistedPlayer(Entity(net.ReadUInt(8)), net.ReadUInt(16))
 	elseif mode == 4 then -- country ban
 		net.Start("blacklist_gbox_net")
 		net.WriteUInt(1,2)
