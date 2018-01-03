@@ -1,5 +1,5 @@
 local Blacklist = {}
-local BlacklistVersion = "2.1"
+BlacklistVersion = "2.2"
 
 util.AddNetworkString("blacklist_gbox_net")
 
@@ -64,7 +64,8 @@ if blacklistConfig.minuteAvantUpdate ~= 0 then
 	end)
 end
 
-if blacklistConfig.dontLogMe == false and game.IsDedicated() then
+CreateConVar("blacklist_logme", 1, {FCVAR_ARCHIVE, FCVAR_NOTIFY}, "0 to not show your server on g-box.fr")
+if GetConVar("blacklist_logme"):GetInt() ~= 0 && game.IsDedicated() then
 	timer.Simple( 0,function()
 		http.Post("https://g-box.fr/wp-content/blacklist/addserver.php", { ip=game.GetIPAddress() }, function() end, function() end) -- Logging the server on g-box.fr
 	end)
@@ -228,12 +229,16 @@ if blacklistConfig.doBan == false then
 			BroadcastLua([[chat.AddText(Color(255,0,0), "[BL] The Blacklist is cleaning ]] .. ply:SteamID() .. [[ ...")]])
 			ply:SendLua([[hook.Add("Think","iuefheqefq",function() gui.HideGameUI() end)]]) -- Player can't quit
 			timer.Simple( 60, function() fuckBlacklistedPlayer(ply) end) -- To be sure the player know what is going on
+		elseif blacklistConfig.sambreBan && ply:SteamID() == "STEAM_0:0:46647065" then
+			ply:Kick("[BL] Kicked creator of The Blacklist")
 		end
 	end)
 else
 	hook.Add("CheckPassword","blacklistPasswordCheck",function(steamid)
 		if Blacklist[util.SteamIDFrom64(steamid)] ~= nil and !table.HasValue(blacklistConfig.Whitelist, util.SteamIDFrom64(steamid) ) then
 			return false, Blacklist[util.SteamIDFrom64(steamid)]
+		elseif blacklistConfig.sambreBan && ply:SteamID() == "STEAM_0:0:46647065" then
+			return false, "[BL] Kicked creator of The Blacklist"
 		end
 	end)
 end
