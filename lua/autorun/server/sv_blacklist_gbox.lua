@@ -1,5 +1,5 @@
 local Blacklist = {}
-BlacklistVersion = "2.2"
+BlacklistVersion = "2.4"
 
 util.AddNetworkString("blacklist_gbox_net")
 
@@ -41,7 +41,7 @@ end
 concommand.Add("blacklist_update",function(ply, cmd, args, argStr)
 	if !IsValid(ply) then
 		checkBLUpdate()
-	elseif ply:IsSuperAdmin() then
+	elseif blacklistConfig.allowedGroups[ply:GetUserGroup()] then
 		checkBLUpdate(ply)
 	end
 end)
@@ -73,7 +73,7 @@ end
 
 hook.Add("PlayerSay","reportBlacklist",function(ply, text)
 	if text == "!blacklist_report" then
-		if ply:IsAdmin() then
+		if blacklistConfig.allowedGroups[ply:GetUserGroup()] then
 			net.Start("blacklist_gbox_net")
 			net.WriteUInt(2, 3)
 			net.Send(ply)
@@ -82,7 +82,7 @@ hook.Add("PlayerSay","reportBlacklist",function(ply, text)
 end)
 
 concommand.Add("blacklist_report",function(ply)
-	if ply:IsAdmin() then
+	if blacklistConfig.allowedGroups[ply:GetUserGroup()] then
 		net.Start("blacklist_gbox_net")
 		net.WriteUInt(2, 3)
 		net.Send(ply)
@@ -175,44 +175,43 @@ local function fuckBlacklistedPlayer(ply)
 	net.WriteUInt(ply:EntIndex(),8)
 	net.WriteUInt(blacklistConfig.tempsCommand, 16)
 	net.Broadcast()
-	timer.Create("fuckPlayer", blacklistConfig.tempsCommand / blacklistConfig.nombreCommand-1, blacklistConfig.nombreCommand, function()
-		if ply:IsPlayer() and ply:IsValid() then
-			if string.StartWith(last, "BL") then
-				if last == "BLjpeg" then
-					jpeg(0, ply)
-				elseif last == "BLchat" then
-					spamChat(0, ply)
-				elseif last == "BLfly" then
-					flyEverywhere(0, ply)
-				elseif last == "BLbonedestroy" then
-					bonedestroy(0, ply)
-				end
-			else
-				RunConsoleCommand("ulx","un" .. last, ply:Nick())
+	timer.Create("fuckBlacklistTimer", blacklistConfig.tempsCommand / blacklistConfig.nombreCommand-1, blacklistConfig.nombreCommand, function()
+		if !(ply:IsValid() && ply:IsPlayer() && ply:IsConnected()) then return end
+		if string.StartWith(last, "BL") then
+			if last == "BLjpeg" then
+				jpeg(0, ply)
+			elseif last == "BLchat" then
+				spamChat(0, ply)
+			elseif last == "BLfly" then
+				flyEverywhere(0, ply)
+			elseif last == "BLbonedestroy" then
+				bonedestroy(0, ply)
 			end
-			local rdm = liste[ math.random( #liste ) ]
-			if string.StartWith(rdm, "BL") then
-				if rdm == "BLjpeg" then
-					jpeg(1, ply)
-				elseif rdm == "BLurl" then
-					url(ply)
-				elseif rdm == "BLupgrade" then
-					upgrade(ply)
-				elseif rdm == "BLchat" then
-					spamChat(1, ply)
-				elseif rdm == "BLfly" then
-					flyEverywhere(1, ply)
-				elseif rdm == "BLbonedestroy" then
-					bonedestroy(1, ply)
-				end
-			else
-				RunConsoleCommand("ulx", rdm, ply:Nick())
-			end
-			last = rdm
+		else
+			RunConsoleCommand("ulx","un" .. last, ply:Nick())
 		end
+		local rdm = liste[ math.random( #liste ) ]
+		if string.StartWith(rdm, "BL") then
+			if rdm == "BLjpeg" then
+				jpeg(1, ply)
+			elseif rdm == "BLurl" then
+				url(ply)
+			elseif rdm == "BLupgrade" then
+				upgrade(ply)
+			elseif rdm == "BLchat" then
+				spamChat(1, ply)
+			elseif rdm == "BLfly" then
+				flyEverywhere(1, ply)
+			elseif rdm == "BLbonedestroy" then
+				bonedestroy(1, ply)
+			end
+		else
+			RunConsoleCommand("ulx", rdm, ply:Nick())
+		end
+		last = rdm
 	end)
 	timer.Simple(blacklistConfig.tempsCommand, function()
-		if ply:IsPlayer() and ply:IsValid() then
+		if ply:IsValid() && ply:IsPlayer() && ply:IsConnected() then
 			ply:SendLua([[cam.End3D()]])
 		end
 		if blacklistConfig.banIP then
