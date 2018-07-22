@@ -16,17 +16,29 @@ You can customize The Blacklist with the file located
 ## Features
 
 - Giant sourceban maintened by volunteers like (INSERT FAMOUS NAME HERE)
+
 __________________________________
+
 – Forbid foreign country if you don't want foreign people
+
 __________________________________
+
 – Forbid steam groups (if you want to ban an entire community)
+
 __________________________________
+
 – Minimum playtime to join the server 
+
 __________________________________
+
 – Prevent Steam Family Sharing
+
 __________________________________
+
 – A wide variety of commands used against Blacklisted player (it's funny, but facultative) before the ban
+
 __________________________________
+
 – In-game panel to report (send report to all Blacklist servers) :
 blacklist_report
 
@@ -40,6 +52,8 @@ URL | Maintener
 ------------ | -------------
 (URL) | (MAINTENER)
 (URL) | (MAINTENER)
+
+To be added into Official Servers, [add me on steam](http://steamcommunity.com/profiles/76561198197775845)
 
 ## Installing a custom Blacklist server on my webserver
 
