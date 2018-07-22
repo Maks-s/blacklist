@@ -9,7 +9,7 @@ end
 
 local function downloadAndApplyBL(url)
 
-	http.Fetch(url .. "banlist.txt", function(banlist)
+	http.Fetch(url .. "banlist.json", function(banlist)
 
 		local banTable = util.JSONToTable(banlist)
 		if !istable(banTable) then return end
