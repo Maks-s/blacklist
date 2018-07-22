@@ -32,7 +32,7 @@ blacklist_report
 
 ## Custom Blacklist server
 
-You can add custom Blacklist servers in the config file, each will add a list of ban to the global sourceban on your server
+You can add custom Blacklist servers in the config file, each will add bans to the global sourceban on your server
 
 ### Official servers :
 

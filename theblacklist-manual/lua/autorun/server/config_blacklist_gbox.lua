@@ -9,10 +9,9 @@ blacklistConfig.doBan = false -- Is the player banned when he spawn ( true ) or 
 blacklistConfig.banIP = true -- Is the player banned ip too
 blacklistConfig.bypassBanCheck = true -- Add some ban bypass protection
 blacklistConfig.minPlayTime = 0 -- Minimum playtime in minutes
-blacklistConfig.sambreBan = false -- Should we ban the creator of 'The Blacklist'
 blacklistConfig.Whitelist = { -- Whitelisted players won't be blacklisted
-	--"STEAM_0:0:466454565",
-	--"STEAM_0:1:11644158"
+	--["STEAM_0:0:466454565"] = true,
+	--["STEAM_0:1:11644158"] = true
 }
 blacklistConfig.groups = { -- Banned groups, use group name in http://steamcommunity.com/groups/[group name] for adding groups
 	-- "roqjfanclub",
@@ -24,9 +23,12 @@ blacklistConfig.groups = { -- Banned groups, use group name in http://steamcommu
 	-- "MPGH",
 }
 blacklistConfig.countryBan = { -- Banned country, use code like FR, EN, JP ect...
-	--"FR",
-	--"US"
+	--["FR"] = true,
+	--["US"] = true
 }
-blacklistConfig.allowedGroups = { -- Groups who can use !blacklist_report and blacklist_upgrade
+blacklistConfig.allowedGroups = { -- Groups who can use !blacklist_report and blacklist_update
 	["superadmin"] = true
+}
+blacklistConfig.servers = { -- Blacklist server to get bans (ENDS WITH /)
+	"http://localhost/"
 }

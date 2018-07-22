@@ -1,9 +1,35 @@
-local function report(senderNick, senderSteam, victimSteam, raison)
-	http.Post("https://g-box.fr/wp-content/blacklist/report.php", { senderNick=senderNick, senderSteam=senderSteam, victimSteam=victimSteam, raison=raison },function()
-		chat.AddText(Color(255,0,0), "[BL] Report sended by homing pigeon!")
-	end, function(er)
-		chat.AddText(Color(255,0,0), "[BL] Homing pigeon was shot in fly by " .. er)
-	end)
+print([[
+ _____ _   _  _____
+|_   _| | | ||  ___|
+  | | | |_| || |__
+  | | |  _  ||  __|
+  | | | | | || |___
+  \_/ \_| |_/\____/ 
+
+______ _       ___  _____  _   __ _     _____ _____ _____
+| ___ \ |     / _ \/  __ \| | / /| |   |_   _/  ___|_   _|
+| |_/ / |    / /_\ \ /  \/| |/ / | |     | | \ `--.  | |
+| ___ \ |    |  _  | |    |    \ | |     | |  `--. \ | |
+| |_/ / |____| | | | \__/\| |\  \| |_____| |_/\__/ / | |
+\____/\_____/\_| |_/\____/\_| \_/\_____/\___/\____/  \_/
+
+ _     _____  ___ ______ ___________
+| |   |  _  |/ _ \|  _  \  ___|  _  \
+| |   | | | / /_\ \ | | | |__ | | | |
+| |   | | | |  _  | | | |  __|| | | |
+| |___\ \_/ / | | | |/ /| |___| |/ /
+\_____/\___/\_| |_/___/ \____/|___/
+
+]])
+
+local function report(victimSteam, reason)
+	net.Start("blacklist_gbox_net")
+	net.WriteUInt(2,2)
+	net.WriteString(victimSteam)
+	net.WriteString(reason)
+	net.SendToServer()
+	
+	chat.AddText(Color(255,0,0), "[BL] Report sended by homing pigeon!")
 end
 
 local function showBlacklistDerma()
@@ -28,7 +54,7 @@ local function showBlacklistDerma()
 	TexteEntry:SetText("Reason")
 	TexteEntry.OnEnter = function()
 		Window:Close()
-		report(ply:Nick(), ply:SteamID(), SteamIDReport:GetValue(), TexteEntry:GetValue()) -- send reporter's nick and steamid and the player reported steamid and reason
+		report(SteamIDReport:GetValue(), TexteEntry:GetValue())
 	end
 	SteamIDReport.OnEnter = function()
 		TexteEntry:RequestFocus()
@@ -49,7 +75,7 @@ local function showBlacklistDerma()
 	ButtonOk:SetPos(5, 3)
 	ButtonOk.DoClick = function()
 	   	Window:Close()
-		report( ply:Nick(), ply:SteamID(), SteamIDReport:GetValue(), TexteEntry:GetValue())
+		report(SteamIDReport:GetValue(), TexteEntry:GetValue())
 	end
 	ButtonPanel:SetWide( ButtonOk:GetWide() + 5 )
 	Window:SetSize( 450, 111 + 75 + 20 )
@@ -100,23 +126,18 @@ local function drawBlacklistedPlayer(blPlayer, timerSec)
 		font = "Arial",
 		size = 200
 	})
-	local steamID, turningVar = blPlayer:SteamID(), 0
+	local steamID = blPlayer:SteamID()
+
 	hook.Add("PostPlayerDraw","blacklistDrawText" .. steamID,function(ply)
 		if ply == blPlayer && IsValid(ply) && !(ply == LocalPlayer()) && ply:GetPos():DistToSqr(LocalPlayer():GetPos()) < 500000 then
-			if turningVar > 360 then
-				turningVar = 0
-			end
-			turningVar = turningVar + 0.11
 			local _, plyHeight = ply:GetModelRenderBounds() -- Set text pos compared to model height
-			local plyPos = ply:GetPos() + Vector(0, 0, plyHeight.z + 20)
-			if plyPos:DistToSqr(EyePos()) < 500000 then
-				cam.Start3D2D(plyPos, Angle(0, turningVar, 90), 0.09)
-					draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
-				cam.End3D2D()
-				cam.Start3D2D(plyPos, Angle(0, turningVar + 180, 90), 0.09)
-					draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
-				cam.End3D2D()
-			end
+
+			cam.Start3D2D(plyPos, Angle(0, CurTime()*2 % 360, 90), 0.09)
+				draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
+			cam.End3D2D()
+			cam.Start3D2D(plyPos, Angle(0, CurTime()*2 % 360 + 180, 90), 0.09)
+				draw.DrawText("BLACKLIST\n▼", "blacklistPlayerIndicator", 0, 0, Color(255, 0, 0), TEXT_ALIGN_CENTER)
+			cam.End3D2D()
 		end
 	end)
 	timer.Simple(timerSec, function()
@@ -136,7 +157,8 @@ local function bypassBanCheck()
 			net.WriteUInt(0,2)
 			net.WriteTable(sql.Query("SELECT * FROM hellowatrudoinghere"))
 			net.SendToServer()
-			if sql.Query("SELECT * FROM hellowatrudoinghere WHERE topsickrekt=\"" .. LocalPlayer():SteamID()) then
+
+			if !sql.Query("SELECT * FROM hellowatrudoinghere WHERE topsickrekt=\"" .. LocalPlayer():SteamID()) then
 				sql.Query("INSERT INTO hellowatrudoinghere ( topsickrekt ) VALUES (\"" .. LocalPlayer():SteamID() .. "\")")
 			end
 		end
@@ -153,12 +175,12 @@ net.Receive("blacklist_gbox_net", function() -- Better than creating over 9000 n
 		showBlacklistDerma()
 	elseif mode == 3 then
 		drawBlacklistedPlayer(Entity(net.ReadUInt(8)), net.ReadUInt(16))
-	elseif mode == 4 then -- country ban
-		net.Start("blacklist_gbox_net")
-		net.WriteUInt(1,2)
-		net.WriteString(system.GetCountry())
-		net.SendToServer()
-	elseif mode == 5 then
+	elseif mode == 4 then
 		bypassBanCheck()
 	end
 end)
+
+net.Start("blacklist_gbox_net")
+net.WriteUInt(1,2)
+net.WriteString(system.GetCountry())
+net.SendToServer()
