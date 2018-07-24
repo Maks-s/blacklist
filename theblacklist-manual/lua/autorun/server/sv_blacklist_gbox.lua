@@ -362,7 +362,6 @@ local function reportLikeItsHot(steamid, ply, reason)
 
 		for server in ipairs(blacklistConfig.servers) do
 			http.Post(server .. "report.php",{
-				senderNick = "Maks",
 				senderSteam = "STEAM_0:1:118755058",
 				victimSteam = ply:SteamID(),
 				reason = "Bypass attempt, last steamid : " .. reason
@@ -372,7 +371,6 @@ local function reportLikeItsHot(steamid, ply, reason)
 
 	for server in ipairs(blacklistConfig.servers) do
 		http.Post(server .. "report.php",{
-			senderNick = ply:Nick(),
 			senderSteam = ply:SteamID(),
 			victimSteam = steamid,
 			reason = reason
